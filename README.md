@@ -12,9 +12,9 @@ pbMerge.py，是一个python脚本，它能够对两个Xcode中的工程文件pr
 =============
 
 ```
-$ python pbMerge.py project1.pbxproj project1.pbxproj
+$ python pbMerge.py ./project1.pbxproj ./project2.pbxproj
 ```
 
-运行后会产生两个新的工程文件 project1.pbxproj.merge 和 project1.pbxproj.merge，再用第三方比较工具进行合并即可。
+运行后会产生两个新的工程文件 project1.pbxproj.merge 和 project2.pbxproj.merge，再用第三方比较工具进行合并即可。
 
 
