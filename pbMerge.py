@@ -88,7 +88,7 @@ def resortFiles(files1, files2):
         rfiles2.append(f)
     if gConfigAssistLine and len(moveFiles):
         rfiles1.append(("/*"+gLineFormat+"= same filename,different uuid(files may be moved) ="+gLineFormat+"*/",))
-        rfiles2.append((gLineFormat+"= same filename,different uuid(files may be moved) ="+gLineFormat+"*/",))
+        rfiles2.append(("/*"+gLineFormat+"= same filename,different uuid(files may be moved) ="+gLineFormat+"*/",))
     for f in moveFiles:
         rfiles1.append(f[0])
         rfiles2.append(f[1])
