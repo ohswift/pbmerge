@@ -37,6 +37,8 @@ gSourceBuildPhaseSourcePattern = re.compile(r'''(^\s+(\w+?) /\* Sources \*/.*?$.
 
 gSourceBuildPhaseFilePattern = gBuidFilePattern
 
+gGitConflictPattern = re.compile(r'''(?i)(?:^<<<<<<< (\S+?)\s(.*?)^=======\s(.*?)^>>>>>>> (\S+?)\s)''', re.S|re.M)
+
 # 加入辅助线区分
 gConfigAssistLine = True
 gLineFormat = 15*"=="
@@ -57,27 +59,44 @@ def resortFiles(files1, files2):
     leftFiles=[]    # 左边才有的文件
     rightFiles=[]   # 右边才有的文件
     i,res=0,2
-    
+
+    # 1. 第一遍找出完全相同的元素
     while i<len(files1):
         left=files1[i]
-        j,res,right=0,2,None
+        j,res,right=0,-1,None
         while j<len(files2):
             right=files2[j]
             res=compareFile(left, right)
-            if (res!=3):
+            if res==0:
                 del(files2[j])
                 break
             j=j+1
         if res==0:
             sameFiles.append(left)
-        elif res==1:
+            del(files1[i])
+        else:
+            i=i+1
+
+    # 2. 第二遍处理其他关系元素
+    i=0
+    while i < len(files1):
+        left=files1[i]
+        j, res, right = 0, -1, None
+        while j < len(files2):
+            right = files2[j]
+            res = compareFile(left, right)
+            if res !=3 :
+                del (files2[j])
+                break
+            j = j + 1
+        if res==1:
             moveFiles.append((left,right))
         elif res==2:
             renameFiles.append((left,right))
         elif res==3:
             leftFiles.append(left)
-        
         del(files1[i])
+
     rightFiles += files2
     
     rfiles1,rfiles2=[],[]
@@ -279,20 +298,57 @@ def doDiff(sf,df):
 def doSimpleCheck(f):
     pass
 
+def confilctLeftReplaceFun(matched):
+    left = matched.groups()[1]
+    return left
+
+def confilctRightReplaceFun(matched):
+    right = matched.groups()[2]
+    return right
+
+# 如果文件已经是合并冲突的文件,重新生成两个原始文件
+def doGitRecoverConflicts(f):
+    c = open(f,'r').read()
+#     c = tc
+    first = re.search(gGitConflictPattern, c)
+    if first:
+        sf,df=(first.groups()[0],first.groups()[3])
+    else:
+        return None,None
+    sf = f+".%s" % sf
+    df = f+".%s" % df
+    
+    sfd = open(sf, 'w')
+    lc = re.sub(gGitConflictPattern, confilctLeftReplaceFun, c)
+    sfd.write(lc)
+    sfd.close()
+    
+    dfd = open(df, 'w')
+    rc = re.sub(gGitConflictPattern, confilctRightReplaceFun, c)
+    dfd.write(rc)
+    dfd.close()
+    
+    return sf,df
+
 def printUsage():
     usage = r'''Usage: python pbMerge.py file1 file2
     eg: python pbMerge.py 1.pbxproj 2.pbxproj
+    or python pbMerge.py project.pbxproj
 '''
     print usage
     pass
 
 if __name__ == '__main__':
-    if len(sys.argv)!=3:
+    if len(sys.argv)!=3 and len(sys.argv)!=2:
         printUsage()
-        exit(-1) 
-    sf = sys.argv[1]
-    df = sys.argv[2]
-#     sf=r'''/work/workspace/diff/todo/project3.pbxproj'''
-#     df=r'''/work/workspace/diff/todo/project4.pbxproj''
-    doDiff(sf,df)
+        exit(-1)
+    sf,df='',''
+    if (len(sys.argv)==2):
+        cf = sys.argv[1]
+        sf,df=doGitRecoverConflicts(cf)
+    else:
+        sf = sys.argv[1]
+        df = sys.argv[2]
+    if sf and df:
+        doDiff(sf,df)
     
